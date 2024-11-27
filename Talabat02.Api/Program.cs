@@ -6,7 +6,7 @@ namespace Talabat02.Api
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +25,25 @@ namespace Talabat02.Api
 
             var app = builder.Build();
 
+            #region Migration
+            using var Scope = app.Services.CreateScope();
+            var Services = Scope.ServiceProvider;
+			// Ask Clr for creating object from dbcontext Explicitly
+			var _dbContext = Services.GetRequiredService<StoreContext>();
+            
+            var LoggerFactory = Services.GetRequiredService<ILoggerFactory>();
+
+            try
+            {
+                await _dbContext.Database.MigrateAsync();
+                await StoreContextSeed.SeedAsync(_dbContext);
+            }
+            catch (Exception ex)
+            {
+                var Logger = LoggerFactory.CreateLogger<Program>();
+                Logger.LogError(ex, "an Error occured while applying the Migration");
+            }
+            #endregion
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
